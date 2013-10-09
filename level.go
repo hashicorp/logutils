@@ -3,12 +3,16 @@ package logutils
 import (
 	"bytes"
 	"io"
+	"sync"
 )
 
 type LogLevel string
 
 // LevelFilter is an io.Writer that can be used with a logger that
 // will filter out log messages that aren't at least a certain level.
+//
+// Once the filter is in use somewhere, it is not safe to modify
+// the structure.
 type LevelFilter struct {
 	// Levels is the list of log levels, in increasing order of
 	// severity. Example might be: {"DEBUG", "WARN", "ERROR"}.
@@ -20,31 +24,38 @@ type LevelFilter struct {
 	// The underlying io.Writer where log messages that pass the filter
 	// will be set.
 	Writer io.Writer
+
+	badLevels map[LogLevel]struct{}
+	once      sync.Once
 }
 
 func (f *LevelFilter) Write(p []byte) (n int, err error) {
+	f.once.Do(f.init)
+
 	// Check for a log level
 	var level LogLevel
 	x := bytes.IndexByte(p, '[')
 	if x >= 0 {
 		y := bytes.IndexByte(p[x:], ']')
 		if y >= 0 {
-			level = LogLevel(p[x+1:y])
+			level = LogLevel(p[x+1 : y])
 		}
 	}
 
-	if level != "" {
-		for _, l := range f.Levels {
-			// If we reached a level we care about, skip it
-			if l == f.MinLevel {
-				break
-			}
-
-			if l == level {
-				return len(p), nil
-			}
-		}
+	if _, ok := f.badLevels[level]; ok {
+		return len(p), nil
 	}
 
 	return f.Writer.Write(p)
+}
+
+func (f *LevelFilter) init() {
+	f.badLevels = make(map[LogLevel]struct{})
+	for _, level := range f.Levels {
+		if level == f.MinLevel {
+			break
+		}
+
+		f.badLevels[level] = struct{}{}
+	}
 }
