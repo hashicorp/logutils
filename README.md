@@ -1,4 +1,5 @@
-logutils
-========
+# logutils
 
-Utilities for slightly better logging in Go (Golang).
+logutils is a Go package that augments the standard library "log" package
+to make logging a bit more modern, without fragmenting the Go ecosystem
+with new logging packages.
