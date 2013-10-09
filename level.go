@@ -32,6 +32,12 @@ type LevelFilter struct {
 func (f *LevelFilter) Write(p []byte) (n int, err error) {
 	f.once.Do(f.init)
 
+	// Note in general that io.Writer can receive any byte sequence
+	// to write, but the "log" package always guarantees that we only
+	// get a single line. We use that as a slight optimization within
+	// this method, assuming we're dealing with a single, complete line
+	// of log data.
+
 	// Check for a log level
 	var level LogLevel
 	x := bytes.IndexByte(p, '[')
