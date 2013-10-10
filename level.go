@@ -29,6 +29,23 @@ type LevelFilter struct {
 	once      sync.Once
 }
 
+// Check will check a given line if it would be included in the level
+// filter.
+func (f *LevelFilter) Check(line []byte) bool {
+	// Check for a log level
+	var level LogLevel
+	x := bytes.IndexByte(line, '[')
+	if x >= 0 {
+		y := bytes.IndexByte(line[x:], ']')
+		if y >= 0 {
+			level = LogLevel(line[x+1 : y])
+		}
+	}
+
+	_, ok := f.badLevels[level]
+	return !ok
+}
+
 func (f *LevelFilter) Write(p []byte) (n int, err error) {
 	f.once.Do(f.init)
 
@@ -38,17 +55,7 @@ func (f *LevelFilter) Write(p []byte) (n int, err error) {
 	// this method, assuming we're dealing with a single, complete line
 	// of log data.
 
-	// Check for a log level
-	var level LogLevel
-	x := bytes.IndexByte(p, '[')
-	if x >= 0 {
-		y := bytes.IndexByte(p[x:], ']')
-		if y >= 0 {
-			level = LogLevel(p[x+1 : y])
-		}
-	}
-
-	if _, ok := f.badLevels[level]; ok {
+	if !f.Check(p) {
 		return len(p), nil
 	}
 
