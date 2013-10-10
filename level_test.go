@@ -2,8 +2,8 @@ package logutils
 
 import (
 	"bytes"
-	"log"
 	"io"
+	"log"
 	"testing"
 )
 
@@ -14,9 +14,9 @@ func TestLevelFilter_impl(t *testing.T) {
 func TestLevelFilter(t *testing.T) {
 	buf := new(bytes.Buffer)
 	filter := &LevelFilter{
-		Levels: []LogLevel{"DEBUG", "WARN", "ERROR"},
+		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
 		MinLevel: "WARN",
-		Writer: buf,
+		Writer:   buf,
 	}
 
 	logger := log.New(filter, "", 0)

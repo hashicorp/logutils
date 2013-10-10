@@ -19,19 +19,19 @@ func init() {
 
 func BenchmarkDiscard(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		ioutil.Discard.Write(messages[i % len(messages)])
+		ioutil.Discard.Write(messages[i%len(messages)])
 	}
 }
 
 func BenchmarkLevelFilter(b *testing.B) {
 	filter := &LevelFilter{
-		Levels: []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"},
+		Levels:   []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"},
 		MinLevel: "WARN",
-		Writer: ioutil.Discard,
+		Writer:   ioutil.Discard,
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		filter.Write(messages[i % len(messages)])
+		filter.Write(messages[i%len(messages)])
 	}
 }
