@@ -31,3 +31,28 @@ func TestLevelFilter(t *testing.T) {
 		t.Fatalf("bad: %#v", result)
 	}
 }
+
+func TestLevelFilterCheck(t *testing.T) {
+	filter := &LevelFilter{
+		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
+		MinLevel: "WARN",
+		Writer:   nil,
+	}
+
+	testCases := []struct {
+		line  string
+		check bool
+	}{
+		{"[WARN] foo\n", true},
+		{"[ERROR] bar\n", true},
+		{"[DEBUG] baz\n", false},
+		{"[WARN] buzz\n", true},
+	}
+
+	for _, testCase := range testCases {
+		result := filter.Check([]byte(testCase.line))
+		if result != testCase.check {
+			t.Errorf("Fail: %s", testCase.line)
+		}
+	}
+}
