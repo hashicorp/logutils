@@ -40,7 +40,7 @@ func (f *LevelFilter) Check(line []byte) bool {
 	if x >= 0 {
 		y := bytes.IndexByte(line[x:], ']')
 		if y >= 0 {
-			level = LogLevel(line[x+1 : y])
+			level = LogLevel(line[x+1 : x+y])
 		}
 	}
 
