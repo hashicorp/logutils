@@ -62,13 +62,19 @@ func (f *LevelFilter) Write(p []byte) (n int, err error) {
 	return f.Writer.Write(p)
 }
 
+// SetMinLevel is used to update the minimum log level
+func (f *LevelFilter) SetMinLevel(min LogLevel) {
+	f.MinLevel = min
+	f.init()
+}
+
 func (f *LevelFilter) init() {
-	f.badLevels = make(map[LogLevel]struct{})
+	badLevels := make(map[LogLevel]struct{})
 	for _, level := range f.Levels {
 		if level == f.MinLevel {
 			break
 		}
-
-		f.badLevels[level] = struct{}{}
+		badLevels[level] = struct{}{}
 	}
+	f.badLevels = badLevels
 }
