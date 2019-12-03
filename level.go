@@ -7,6 +7,9 @@ import (
 	"sync"
 )
 
+// LogLevel is a special string, conventionally written all in uppercase, that
+// can be used to mark a log line for filtering and to specify filtering
+// levels in the LevelFilter type.
 type LogLevel string
 
 // LevelFilter is an io.Writer that can be used with a logger that
@@ -49,18 +52,40 @@ func (f *LevelFilter) Check(line []byte) bool {
 	return !ok
 }
 
+// Write is a specialized implementation of io.Writer suitable for being
+// the output of a logger from the "log" package.
+//
+// This Writer implementation assumes that it will only recieve byte slices
+// containing one or more entire lines of log output, each one terminated by
+// a newline. This is compatible with the behavior of the "log" package
+// directly, and is also tolerant of intermediaries that might buffer multiple
+// separate writes together, as long as no individual log line is ever
+// split into multiple slices.
+//
+// Behavior is undefined if any log line is split across multiple writes or
+// written without a trailing '\n' delimiter.
 func (f *LevelFilter) Write(p []byte) (n int, err error) {
-	// Note in general that io.Writer can receive any byte sequence
-	// to write, but the "log" package always guarantees that we only
-	// get a single line. We use that as a slight optimization within
-	// this method, assuming we're dealing with a single, complete line
-	// of log data.
-
-	if !f.Check(p) {
-		return len(p), nil
+	for len(p) > 0 {
+		// Split at the first \n, inclusive
+		idx := bytes.IndexByte(p, '\n')
+		var l []byte
+		l, p = p[:idx+1], p[idx+1:]
+		if f.Check(l) {
+			_, err = f.Writer.Write(l)
+			if err != nil {
+				// Technically it's not correct to say we've written the whole
+				// buffer, but for our purposes here it's good enough as we're
+				// only implementing io.Writer enough to satisfy the "log"
+				// package.
+				return len(p), err
+			}
+		}
 	}
 
-	return f.Writer.Write(p)
+	// We always behave as if we wrote the whole of the buffer, even if
+	// we actually skipped some lines. We're only implementiong io.Writer
+	// enough to satisfy the "log" package.
+	return len(p), nil
 }
 
 // SetMinLevel is used to update the minimum log level
