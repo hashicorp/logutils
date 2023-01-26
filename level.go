@@ -26,8 +26,9 @@ type LevelFilter struct {
 	// will be set.
 	Writer io.Writer
 
-	badLevels map[LogLevel]struct{}
-	once      sync.Once
+	badLevels     map[LogLevel]struct{}
+	once          sync.Once
+	maxLenOfLevel int
 }
 
 // Check will check a given line if it would be included in the level
@@ -40,7 +41,7 @@ func (f *LevelFilter) Check(line []byte) bool {
 	x := bytes.IndexByte(line, '[')
 	if x >= 0 {
 		y := bytes.IndexByte(line[x:], ']')
-		if y >= 0 {
+		if y >= 0 && y-1 <= f.maxLenOfLevel {
 			level = LogLevel(line[x+1 : x+y])
 		}
 	}
@@ -78,4 +79,10 @@ func (f *LevelFilter) init() {
 		badLevels[level] = struct{}{}
 	}
 	f.badLevels = badLevels
+
+	for _, level := range f.Levels {
+		if f.maxLenOfLevel < len(level) {
+			f.maxLenOfLevel = len(level)
+		}
+	}
 }
