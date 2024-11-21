@@ -1,4 +1,4 @@
 @hashicorp/vault
 @hashicorp/terraform
 @hashicorp/consul
-@hashicorp/nomad
+@hashicorp/nomad-eng 
