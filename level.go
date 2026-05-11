@@ -1,3 +1,5 @@
+// Copyright IBM Corp. 2013, 2026
+
 // Package logutils augments the standard log package with levels.
 package logutils
 
