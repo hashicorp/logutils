@@ -32,6 +32,27 @@ func TestLevelFilter(t *testing.T) {
 	}
 }
 
+func TestLevelFilter_PrefixWithBrackets(t *testing.T) {
+	buf := new(bytes.Buffer)
+	filter := &LevelFilter{
+		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
+		MinLevel: "WARN",
+		Writer:   buf,
+	}
+
+	logger := log.New(filter, "[ this will break your filtering ]", 0)
+	logger.Print("[WARN] foo")
+	logger.Println("[ERROR] bar")
+	logger.Println("[DEBUG] baz")
+	logger.Println("[WARN] buzz")
+
+	result := buf.String()
+	expected := "[ this will break your filtering ][WARN] foo\n[ this will break your filtering ][ERROR] bar\n[ this will break your filtering ][WARN] buzz\n"
+	if result != expected {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
 func TestLevelFilterCheck(t *testing.T) {
 	filter := &LevelFilter{
 		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
@@ -47,6 +68,10 @@ func TestLevelFilterCheck(t *testing.T) {
 		{"[ERROR] bar\n", true},
 		{"[DEBUG] baz\n", false},
 		{"[WARN] buzz\n", true},
+		{"[ this will break your filtering ][WARN] foo\n", true},
+		{"[ this will break your filtering ][DEBUG] baz\n", false},
+		{"[app][ERROR] bar\n", true},
+		{"[app][DEBUG] baz\n", false},
 	}
 
 	for _, testCase := range testCases {
