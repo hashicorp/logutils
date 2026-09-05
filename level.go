@@ -35,14 +35,32 @@ type LevelFilter struct {
 func (f *LevelFilter) Check(line []byte) bool {
 	f.once.Do(f.init)
 
-	// Check for a log level
+	// Check for a log level. Skip [..] tokens that are not a configured
+	// level so a bracketed prefix does not disable filtering.
 	var level LogLevel
-	x := bytes.IndexByte(line, '[')
-	if x >= 0 {
-		y := bytes.IndexByte(line[x:], ']')
-		if y >= 0 {
-			level = LogLevel(line[x+1 : x+y])
+	rest := line
+	for {
+		x := bytes.IndexByte(rest, '[')
+		if x < 0 {
+			break
 		}
+		y := bytes.IndexByte(rest[x:], ']')
+		if y < 0 {
+			break
+		}
+		candidate := LogLevel(rest[x+1 : x+y])
+		matched := false
+		for _, l := range f.Levels {
+			if l == candidate {
+				level = candidate
+				matched = true
+				break
+			}
+		}
+		if matched {
+			break
+		}
+		rest = rest[x+y+1:]
 	}
 
 	_, ok := f.badLevels[level]
