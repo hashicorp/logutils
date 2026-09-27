@@ -32,21 +32,34 @@ type LevelFilter struct {
 
 // Check will check a given line if it would be included in the level
 // filter.
+//
+// Level tags are matched against the configured Levels list (e.g. "[WARN]"),
+// not the first pair of square brackets on the line. That way a log.SetPrefix
+// value that itself contains brackets does not disable filtering (#8).
 func (f *LevelFilter) Check(line []byte) bool {
 	f.once.Do(f.init)
 
-	// Check for a log level
-	var level LogLevel
-	x := bytes.IndexByte(line, '[')
-	if x >= 0 {
-		y := bytes.IndexByte(line[x:], ']')
-		if y >= 0 {
-			level = LogLevel(line[x+1 : x+y])
+	level, ok := f.levelFromLine(line)
+	if !ok {
+		// No recognized level tag: keep previous behavior and allow the line.
+		return true
+	}
+	_, bad := f.badLevels[level]
+	return !bad
+}
+
+// levelFromLine finds a configured level tag like "[WARN]" in the line.
+func (f *LevelFilter) levelFromLine(line []byte) (LogLevel, bool) {
+	for _, lvl := range f.Levels {
+		needle := make([]byte, 0, len(lvl)+2)
+		needle = append(needle, '[')
+		needle = append(needle, lvl...)
+		needle = append(needle, ']')
+		if bytes.Contains(line, needle) {
+			return lvl, true
 		}
 	}
-
-	_, ok := f.badLevels[level]
-	return !ok
+	return "", false
 }
 
 func (f *LevelFilter) Write(p []byte) (n int, err error) {
